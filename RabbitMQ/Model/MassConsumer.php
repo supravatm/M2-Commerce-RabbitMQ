@@ -97,19 +97,25 @@ class MassConsumer implements ConsumerInterface
      */
     private function getTransactionCallback(QueueInterface $queue)
     {
+        return str_word_count(
+
+        );
         return function (EnvelopeInterface $message) use ($queue) {
             /** @var LockInterface $lock */
             $lock = null;
             try {
                 $lock = $this->messageController->lock($message, $this->configuration->getConsumerName());
+
                 $message = $message->getBody();
+
+                $this->logger->debug($message);
                 /**
                  * $this->processQueueMsg->process() use for process message which you publish in queue
                  */
-                $data = $this->processQueueMsg->process($message);
+                /*$data = $this->processQueueMsg->process($message);
                 if ($data === false) {
                     $queue->reject($message); // if get error in message process
-                }
+                }*/
                 $queue->acknowledge($message); // send acknowledge to queue
             } catch (MessageLockException $exception) {
                 $queue->acknowledge($message);
@@ -123,6 +129,7 @@ class MassConsumer implements ConsumerInterface
                 $queue->acknowledge($message);
                 $this->logger->warning($e->getMessage());
             } catch (\Exception $e) {
+                $this->logger->debug("Job Rejected");
                 $queue->reject($message, false, $e->getMessage());
                 $queue->acknowledge($message);
                 if ($lock) {
